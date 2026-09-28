@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 
-// --- DATA TYPES ---
+// ==========================================
+// DATA TYPES & INTERFACES
+// ==========================================
 interface BeySlot {
   blade: string;
   ratchet: string;
@@ -42,7 +44,19 @@ interface Match {
   history: MatchAction[];
 }
 
-// --- OFFICIAL TAKARA TOMY PARTS CATALOG ---
+interface MarketItem {
+  id: string;
+  title: string;
+  price: number;
+  seller: string;
+  phone: string;
+  condition: string;
+  category: 'Blade' | 'Ratchet' | 'Bit' | 'Starter Set' | 'Stadium';
+}
+
+// ==========================================
+// OFFICIAL TAKARA TOMY PARTS CATALOG
+// ==========================================
 const BLADES = [
   "Phoenix Wing", "Wizard Rod", "Dran Buster", "Shark Edge", "Cobalt Dragoon",
   "Hells Chain", "Unicorn Sting", "Tyranno Beat", "Silver Wolf", "Aero Pegasus",
@@ -64,6 +78,22 @@ const BITS = [
   "Needle (N)", "Gear Needle (GN)"
 ];
 
+const PARTS_DATABASE = [
+  { name: "Phoenix Wing", type: "Attack", weight: "38.2g", tier: "S-Tier", note: "Top-tier heavy attack blade with extreme recoil power." },
+  { name: "Wizard Rod", type: "Stamina", weight: "35.5g", tier: "S-Tier", note: "Dominant stamina wheel. Best outward weight distribution." },
+  { name: "Dran Buster", type: "Attack", weight: "36.1g", tier: "S-Tier", note: "Massive single-point impact blade for early burst/xtreme finishes." },
+  { name: "Shark Edge", type: "Attack", weight: "34.8g", tier: "A-Tier", note: "Low-profile upper attack blade designed to lift opponents." },
+  { name: "Cobalt Dragoon", type: "Attack (Left)", weight: "37.9g", tier: "S-Tier", note: "Left-spin attacker with high gear-line contact velocity." },
+  { name: "Hells Chain", type: "Balance", weight: "34.0g", tier: "A-Tier", note: "Versatile defensive counter-attacker with layered contact points." },
+  { name: "Unicorn Sting", type: "Balance", weight: "33.8g", tier: "A-Tier", note: "Dual-sided blade with high stamina preservation." },
+  { name: "Tyranno Beat", type: "Attack", weight: "37.5g", tier: "S-Tier", note: "High-momentum smash attacker with thick peripheral weight." },
+  { name: "Silver Wolf", type: "Defense", weight: "36.2g", tier: "A-Tier", note: "Free-spinning defensive contact ring for deflecting smashes." },
+  { name: "Ball (B)", type: "Stamina", weight: "2.1g", tier: "S-Tier", note: "The gold standard for stamina preservation and late-spin preemption." },
+  { name: "Gear Flat (GF)", type: "Attack", weight: "2.3g", tier: "S-Tier", note: "Maximum gear-line rail acceleration for fast Xtreme finishes." },
+  { name: "Point (P)", type: "Balance", weight: "2.2g", tier: "A-Tier", note: "Switches between center defensive stance and explosive attack angles." },
+  { name: "Low Flat (LF)", type: "Attack", weight: "2.1g", tier: "A-Tier", note: "Lower center of gravity for uppercuts underneath taller stamina Beys." }
+];
+
 // Initial seeded bladers from the official leaderboard
 const INITIAL_NAMES = [
   "Khaled", "Rusab", "Samsul", "Azraf", "Didar", "Shakib",
@@ -79,8 +109,8 @@ const makeDefaultDeck = (seed: number): [BeySlot, BeySlot, BeySlot] => [
 ];
 
 export default function App() {
-  // Navigation: 'registration' | 'pairings' | 'standings' | 'topcut' | 'codex'
-  const [activeTab, setActiveTab] = useState<'registration' | 'pairings' | 'standings' | 'topcut' | 'codex'>('registration');
+  // Navigation: 'hub' | 'codex' | 'market' | 'registration' | 'pairings' | 'standings' | 'topcut'
+  const [activeTab, setActiveTab] = useState<'hub' | 'codex' | 'market' | 'registration' | 'pairings' | 'standings' | 'topcut'>('hub');
 
   // Bladers State
   const [bladers, setBladers] = useState<Blader[]>(() =>
@@ -106,7 +136,7 @@ export default function App() {
   const [editingBlader, setEditingBlader] = useState<Blader | null>(null);
   const [topCutMatches, setTopCutMatches] = useState<any>(null);
 
-  // Form State for Registering a New Blader
+  // Registration Form State
   const [regName, setRegName] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regDeck, setRegDeck] = useState<[BeySlot, BeySlot, BeySlot]>([
@@ -115,7 +145,24 @@ export default function App() {
     { blade: "Dran Buster", ratchet: "1-60", bit: "Accel (A)" }
   ]);
 
-  // Check Takara Tomy No-Repeat Rule
+  // Marketplace State
+  const [marketItems, setMarketItems] = useState<MarketItem[]>([
+    { id: 'm1', title: 'Takara Tomy BX-23 Phoenix Wing 9-60 GF (Mint)', price: 2450, seller: 'Tahmid_Spin', phone: '01711223344', condition: 'Brand New In Box', category: 'Starter Set' },
+    { id: 'm2', title: 'Wizard Rod 5-60 Ball Competition Combo', price: 1800, seller: 'Zakir_Dhaka', phone: '01899887766', condition: 'Tournament Used (Clean)', category: 'Blade' },
+    { id: 'm3', title: 'Official BX-07 Xtreme Stadium Set (Black/Green)', price: 4200, seller: 'Tanvir_Apex', phone: '01922334455', condition: 'Box Open / Never Used', category: 'Stadium' },
+    { id: 'm4', title: 'Gear Flat (GF) + Point (P) Authentic Bit Pack', price: 950, seller: 'Sami_BD', phone: '01511224466', condition: 'Like New', category: 'Bit' }
+  ]);
+  const [showMarketModal, setShowMarketModal] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState("");
+  const [newItemSeller, setNewItemSeller] = useState("");
+  const [newItemPhone, setNewItemPhone] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState<'Blade' | 'Ratchet' | 'Bit' | 'Starter Set' | 'Stadium'>('Blade');
+
+  // Codex Filter
+  const [codexFilter, setCodexFilter] = useState("All");
+
+  // Validate TT No-Repeat Rule
   const getDeckValidation = (deck: [BeySlot, BeySlot, BeySlot]) => {
     const blades = [deck[0].blade, deck[1].blade, deck[2].blade];
     const ratchets = [deck[0].ratchet, deck[1].ratchet, deck[2].ratchet];
@@ -130,15 +177,12 @@ export default function App() {
     if (duplicateRatchets.length > 0) errors.push(`Duplicate Ratchet: ${duplicateRatchets.join(', ')}`);
     if (duplicateBits.length > 0) errors.push(`Duplicate Bit: ${duplicateBits.join(', ')}`);
 
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
+    return { isValid: errors.length === 0, errors };
   };
 
   const regValidation = useMemo(() => getDeckValidation(regDeck), [regDeck]);
 
-  // Handle New Blader Registration
+  // Handle Blader Registration
   const handleRegisterBlader = (e: React.FormEvent) => {
     e.preventDefault();
     if (!regName.trim()) {
@@ -170,7 +214,7 @@ export default function App() {
     alert(`Blader "${newBlader.name}" successfully registered with deck!`);
   };
 
-  // Swiss Pairings Generator (Only includes Checked-In Players)
+  // Swiss Pairings
   const generateSwissPairings = (pool: Blader[], roundNumber: number) => {
     const active = pool.filter(b => b.checkedIn);
     if (active.length < 2) return [];
@@ -276,7 +320,6 @@ export default function App() {
     setActiveTab('pairings');
   };
 
-  // Live Standings calculation with Buchholz tiebreaker
   const standings = useMemo(() => {
     return [...bladers]
       .filter(b => b.checkedIn)
@@ -294,7 +337,7 @@ export default function App() {
       });
   }, [bladers]);
 
-  // Undo a completed match directly from the matches view
+  // Undo finished match from the pairings card
   const handleUndoCompletedMatch = (matchId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const roundMatches = rounds[currentRound] || [];
@@ -357,7 +400,7 @@ export default function App() {
     }));
   };
 
-  // Referee scoring controls
+  // Referee scoring
   const handleApplyFinish = (playerNum: 1 | 2, finishType: string, points: number) => {
     if (!activeMatchModal || activeMatchModal.winnerId) return;
     const cur = { ...activeMatchModal };
@@ -517,40 +560,58 @@ export default function App() {
   const checkedInCount = bladers.filter(b => b.checkedIn).length;
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans pb-16">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-[#0b101f]/95 backdrop-blur border-b border-cyan-500/20 px-4 py-3 flex items-center justify-between shadow-xl">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 font-sans pb-16 selection:bg-cyan-500 selection:text-black">
+      {/* Top Banner Navigation */}
+      <header className="sticky top-0 z-30 bg-[#0b101f]/95 backdrop-blur border-b border-cyan-500/20 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#ff4500] to-cyan-400 p-[2px] flex items-center justify-center font-black text-black">
-            <span className="text-xs bg-[#0a0f1d] text-cyan-400 w-full h-full rounded-[10px] flex items-center justify-center font-black">X</span>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#ff4500] to-cyan-400 p-[2px] flex items-center justify-center font-black text-black">
+            <span className="text-sm bg-[#0a0f1d] text-cyan-400 w-full h-full rounded-[10px] flex items-center justify-center font-black">X</span>
           </div>
           <div>
             <h1 className="text-base font-black italic tracking-wider text-white">
               BEYBLADE X <span className="text-amber-400 text-[10px] border border-amber-400/80 px-1 py-0.5 rounded ml-1">BANGLADESH HUB</span>
             </h1>
             <p className="text-[11px] text-slate-400">
-              {checkedInCount} of {bladers.length} Bladers Ready &bull; Round {currentRound}
+              Community Portal &bull; {checkedInCount} Active Bladers
             </p>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        {/* Global Navigation Tabs */}
+        <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+          <button
+            onClick={() => setActiveTab('hub')}
+            className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'hub' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+          >
+            🏠 Dhaka Hub
+          </button>
+          <button
+            onClick={() => setActiveTab('codex')}
+            className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'codex' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+          >
+            📖 Parts Codex
+          </button>
+          <button
+            onClick={() => setActiveTab('market')}
+            className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'market' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+          >
+            🛒 BDT Bazar
+          </button>
           <button
             onClick={() => setActiveTab('registration')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeTab === 'registration' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'registration' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
           >
-            📝 Register & Decks
+            📝 Register & 3v3 Deck
           </button>
           <button
             onClick={() => setActiveTab('pairings')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeTab === 'pairings' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'pairings' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
           >
-            ⚔️ Tournament
+            ⚔️ Tournament Arena
           </button>
           <button
             onClick={() => setActiveTab('standings')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${activeTab === 'standings' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            className={`px-3 py-1.5 rounded-lg transition ${activeTab === 'standings' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
           >
             🎖️ Standings
           </button>
@@ -561,7 +622,186 @@ export default function App() {
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
 
         {/* ========================================================================= */}
-        {/* TAB 1: DEDICATED PLAYER REGISTRATION & 3v3 DECK BUILDER PLACE            */}
+        {/* MODULE 1: COMMUNITY HUB & DHAKA MEETUPS                                  */}
+        {/* ========================================================================= */}
+        {activeTab === 'hub' && (
+          <div className="space-y-6">
+            {/* Hero Banner */}
+            <div className="p-8 rounded-3xl bg-gradient-to-r from-[#0c1426] via-[#101b38] to-[#070b14] border border-cyan-500/30 relative overflow-hidden shadow-2xl">
+              <div className="relative z-10 max-w-2xl space-y-3">
+                <span className="text-[11px] font-black tracking-widest uppercase bg-[#ff4500]/20 text-[#ff7744] border border-[#ff4500]/40 px-3 py-1 rounded-full">
+                  ⚡ Official Bangladeshi Blader Network
+                </span>
+                <h2 className="text-3xl sm:text-4xl font-black text-white italic tracking-wide">
+                  DHAKA PRO CIRCUIT &bull; 2026
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300">
+                  Welcome to the ultimate community portal for Beyblade X in Bangladesh. Join regional battle meetups, verify authentic Takara Tomy parts, and compete in official local Swiss tourneys.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button
+                    onClick={() => setActiveTab('registration')}
+                    className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black text-xs rounded-xl uppercase tracking-wider hover:brightness-110 shadow-lg shadow-cyan-500/20"
+                  >
+                    📝 Register For Tournament
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('codex')}
+                    className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs rounded-xl uppercase tracking-wider"
+                  >
+                    Explore Parts Codex
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Community Stats Ticker */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-2xl font-black text-cyan-400 font-mono">24+</div>
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-1">Ranked Bladers</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-2xl font-black text-amber-400 font-mono">4</div>
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-1">Active Dhaka Zones</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-2xl font-black text-emerald-400 font-mono">100%</div>
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-1">Takara Tomy Standard</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                <div className="text-2xl font-black text-[#ff4500] font-mono">Khaled #1</div>
+                <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-1">Reigning Champion</div>
+              </div>
+            </div>
+
+            {/* Dhaka Meetup Zones */}
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-300 mb-3">
+                📍 Active Dhaka Tournament Arenas & Meetup Hubs
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { name: "Dhanmondi Arena", loc: "Rabindra Sarobar / Lakezone", schedule: "Every Friday 4:00 PM", arenas: "4 Xtreme Stadiums" },
+                  { name: "Banani Club Spot", loc: "Block D Playground", schedule: "Every Saturday 3:30 PM", arenas: "3 Xtreme Stadiums" },
+                  { name: "Uttara Sector 7", loc: "Sector 7 Park Cafe", schedule: "Bi-Weekly Friday", arenas: "2 Xtreme Stadiums" },
+                  { name: "Mirpur 2 Hub", loc: "National Stadium Complex Area", schedule: "Monthly Cup", arenas: "5 Xtreme Stadiums" }
+                ].map((spot, idx) => (
+                  <div key={idx} className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
+                    <div className="font-black text-sm text-cyan-400">{spot.name}</div>
+                    <div className="text-xs text-slate-300 font-medium">{spot.loc}</div>
+                    <div className="text-[11px] text-slate-400">{spot.schedule}</div>
+                    <div className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded w-fit">
+                      {spot.arenas}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Safety & Lead Alert */}
+            <div className="p-4 rounded-2xl bg-rose-950/30 border border-rose-500/40 text-rose-300 text-xs space-y-1">
+              <strong className="text-rose-400 font-black">⚠️ Bangladeshi Bladers Safety Notice:</strong>
+              <p>
+                Please ensure you play with authentic Takara Tomy or Hasbro gear. Fake/counterfeit Beys commonly found in non-verified local toy stalls contain hazardous lead alloy and shatter easily on Xtreme lines.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODULE 2: PARTS CODEX & META DATABASE                                    */}
+        {/* ========================================================================= */}
+        {activeTab === 'codex' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">Competitive Parts Codex</h2>
+                <p className="text-xs text-slate-400">Weight metrics, combat types, and tier ratings for the current BD competitive metagame.</p>
+              </div>
+              <div className="flex gap-1.5 text-xs font-bold">
+                {["All", "Attack", "Stamina", "Defense", "Balance"].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setCodexFilter(t)}
+                    className={`px-3 py-1.5 rounded-lg transition ${codexFilter === t ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {PARTS_DATABASE
+                .filter(p => codexFilter === "All" || p.type.includes(codexFilter))
+                .map((part, idx) => (
+                  <div key={idx} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-sm text-white">{part.name}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        part.tier === 'S-Tier' ? 'bg-amber-400/20 text-amber-400 border border-amber-400/30' : 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/30'
+                      }`}>
+                        {part.tier}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-mono">
+                      <span className="text-cyan-300 font-bold">{part.type}</span>
+                      <span className="text-slate-500">&bull;</span>
+                      <span className="text-slate-300">{part.weight}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">{part.note}</p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODULE 3: BDT COMMUNITY BAZAR (BUY / SELL / TRADE)                      */}
+        {/* ========================================================================= */}
+        {activeTab === 'market' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900 border border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white">BDT Hobbyist Marketplace (৳)</h2>
+                <p className="text-xs text-slate-400">Buy, sell, or trade authentic Takara Tomy Beys and official Stadiums within Dhaka.</p>
+              </div>
+              <button
+                onClick={() => setShowMarketModal(true)}
+                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl uppercase tracking-wider"
+              >
+                + Post Listing
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {marketItems.map(item => (
+                <div key={item.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">
+                      {item.category}
+                    </span>
+                    <span className="text-base font-black text-emerald-400 font-mono">
+                      ৳ {item.price.toLocaleString()} BDT
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-sm text-white">{item.title}</h3>
+                  <div className="text-[11px] text-slate-400">Condition: <strong className="text-slate-300">{item.condition}</strong></div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                    <span className="text-slate-400">Seller: <strong className="text-cyan-400">{item.seller}</strong></span>
+                    <a href={`tel:${item.phone}`} className="text-cyan-400 hover:underline font-bold">
+                      📞 {item.phone}
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODULE 4: REGISTRATION & 3v3 DECK BUILDER (THE PLACE YOU REQUESTED)      */}
         {/* ========================================================================= */}
         {activeTab === 'registration' && (
           <div className="space-y-6">
@@ -583,7 +823,6 @@ export default function App() {
               </div>
 
               <form onSubmit={handleRegisterBlader} className="space-y-5">
-                {/* Blader Details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-300 block mb-1">Blader Tag / Full Name *</label>
@@ -684,7 +923,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={!regValidation.isValid}
@@ -801,7 +1039,7 @@ export default function App() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: ARENA MATCHES WITH UNDO BUTTON DIRECTLY ON CARDS                  */}
+        {/* MODULE 5: ARENA MATCHES (WITH ON-CARD UNDO BUTTON)                        */}
         {/* ========================================================================= */}
         {activeTab === 'pairings' && (
           <div className="space-y-6">
@@ -946,7 +1184,7 @@ export default function App() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: STANDINGS TABLE                                                   */}
+        {/* MODULE 6: STANDINGS TABLE WITH BUCHHOLZ TIEBREAKERS                      */}
         {/* ========================================================================= */}
         {activeTab === 'standings' && (
           <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-[#090d18] shadow-2xl">
@@ -987,7 +1225,7 @@ export default function App() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: TOP 4 FINALS                                                      */}
+        {/* MODULE 7: TOP 4 FINALS                                                   */}
         {/* ========================================================================= */}
         {activeTab === 'topcut' && topCutMatches && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1204,6 +1442,104 @@ export default function App() {
                 className="px-5 py-2 text-xs font-bold rounded-xl bg-cyan-500 text-slate-950 uppercase"
               >
                 Save Deck
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POST MARKETPLACE LISTING MODAL */}
+      {showMarketModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-md bg-[#0d1322] border border-cyan-500/40 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+              <h3 className="font-bold text-sm text-white">Post Item to BD Community Bazar</h3>
+              <button onClick={() => setShowMarketModal(false)} className="text-slate-400 hover:text-white">&times;</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-300 block mb-1 font-bold">Item Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Wizard Rod 9-60 Ball"
+                  value={newItemTitle}
+                  onChange={e => setNewItemTitle(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-bold">Price (BDT ৳)</label>
+                  <input
+                    type="number"
+                    placeholder="1500"
+                    value={newItemPrice}
+                    onChange={e => setNewItemPrice(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-bold">Category</label>
+                  <select
+                    value={newItemCategory}
+                    onChange={e => setNewItemCategory(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-400"
+                  >
+                    <option value="Blade">Blade</option>
+                    <option value="Ratchet">Ratchet</option>
+                    <option value="Bit">Bit</option>
+                    <option value="Starter Set">Starter Set</option>
+                    <option value="Stadium">Stadium</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-bold">Seller Name</label>
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    value={newItemSeller}
+                    onChange={e => setNewItemSeller(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1 font-bold">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="017xxxxxxxx"
+                    value={newItemPhone}
+                    onChange={e => setNewItemPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button onClick={() => setShowMarketModal(false)} className="px-4 py-2 text-xs font-semibold text-slate-400">Cancel</button>
+              <button
+                onClick={() => {
+                  if (!newItemTitle.trim() || !newItemPrice) return;
+                  const item: MarketItem = {
+                    id: `m-${Date.now()}`,
+                    title: newItemTitle.trim(),
+                    price: Number(newItemPrice),
+                    seller: newItemSeller.trim() || 'Anonymous',
+                    phone: newItemPhone.trim() || 'N/A',
+                    condition: 'Authentic TT / Verified',
+                    category: newItemCategory
+                  };
+                  setMarketItems(prev => [item, ...prev]);
+                  setShowMarketModal(false);
+                  setNewItemTitle("");
+                  setNewItemPrice("");
+                }}
+                className="px-5 py-2 text-xs font-bold rounded-xl bg-cyan-500 text-slate-950 uppercase"
+              >
+                Post Item
               </button>
             </div>
           </div>
